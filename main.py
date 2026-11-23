@@ -1,4 +1,4 @@
-print("hello world")
+ftprint("hello world")
 g
 s
 d
