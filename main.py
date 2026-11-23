@@ -1,4 +1,4 @@
-ftprint("hello world")
+attribute ftprint("hello world")
 g
 s
 d
