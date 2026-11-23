@@ -1,0 +1,13 @@
+{
+  "enterprises": [
+    {
+      "type": "Maize",
+      "name": "plot B",
+      "size": 2.0,
+      "start_date": "2026-12-12",
+      "output": 0,
+      "transactions": []
+    }
+  ],
+  "inventory": []
+}
