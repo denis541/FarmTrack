@@ -275,6 +275,39 @@ class FarmTrackApp:
                       InventoryItem("Fungicide (litres)", 3, 1)]
         self.save()
 
+    def load_sample_data(self):
+        """Premade records for demonstrations. Start dates are worked out from
+        today, so there are always real upcoming tasks to show."""
+        def ago(days):
+            return (date.today() - timedelta(days=days)).isoformat()
+
+        maize = Maize("Maize Plot A", 2, ago(60))
+        maize.add_expense(12000, "Certified seed")
+        maize.add_expense(8500, "DAP fertiliser")
+        maize.add_expense(3000, "Weeding labour")
+
+        tomatoes = Tomatoes("Tomato Greenhouse", 0.25, ago(40))
+        tomatoes.add_expense(6000, "Seedlings")
+        tomatoes.add_expense(2500, "Fungicide")
+        tomatoes.record_output(180)
+        tomatoes.add_sale(15000, "Sold at the market")
+
+        cows = DairyCow("Dairy Herd", 4, ago(200))
+        cows.add_expense(15000, "Napier grass and feed")
+        cows.record_output(380)
+        cows.add_sale(28000, "Milk to the cooperative")
+
+        hens = Poultry("Layer Flock", 50, ago(85))
+        hens.add_expense(9000, "Layers mash")
+        hens.record_output(900)
+        hens.add_sale(14400, "Egg tray sales")
+
+        self.enterprises = [maize, tomatoes, cows, hens]
+        self.items = [InventoryItem("DAP fertiliser (kg)", 40, 20),
+                      InventoryItem("Layers mash (kg)", 15, 25),      # below its warning level
+                      InventoryItem("Fungicide (litres)", 3, 1)]
+        self.save()
+
     @staticmethod
     def find(things, name):
         for thing in things:
@@ -354,9 +387,8 @@ class FarmTrackApp:
             print("No tasks due.")
 
     def run(self):
-        if not os.path.exists(DATA_FILE):       # first run: nothing saved yet
-            if ask("First run. Load sample data for a demo? (y/n): ").lower() == "y":
-                self.load_sample_data()
+        if not self.enterprises:        # nothing recorded yet: start with the sample data
+            self.load_sample_data()
         actions = {"1": self.add_enterprise, "2": self.view_enterprises,
                    "3": self.record_expense, "4": self.record_sale,
                    "5": self.record_harvest, "6": self.add_item,
