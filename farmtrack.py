@@ -6,11 +6,11 @@ The four main OOP concepts (look for the CAPITAL WORDS in the comments):
   INHERITANCE    Enterprise -> Crop -> Maize ...   Enterprise -> Livestock -> Poultry ...
   POLYMORPHISM   the same method call behaves differently for each type
 """
-import math, os, pickle
+import math
 from abc import ABC, abstractmethod
 from datetime import date, timedelta
 
-DATA_FILE = "farm_data.pkl"
+TODAY = date.today()
 
 
 def positive(value, what):
@@ -21,9 +21,9 @@ def positive(value, what):
 
 
 def to_date(text):
-    """'2026-03-15' -> a date. Blank means today."""
+    """'2026-03-15' -> a date. Blank means today. A real date is accepted as it is."""
     try:
-        d = date.fromisoformat(text) if text else date.today()
+        d = text if isinstance(text, date) else date.fromisoformat(text) if text else TODAY
     except ValueError:
         raise ValueError("Date must look like 2026-03-15.") from None
     if not 1900 <= d.year <= 2200:
@@ -209,7 +209,7 @@ MENU = """
  2. View enterprises     7. Use / restock inventory
  3. Record expense       8. View inventory
  4. Record sale          9. Upcoming tasks
- 5. Record harvest       0. Save and exit
+ 5. Record harvest       0. Exit
 ======================================="""
 
 
@@ -229,84 +229,33 @@ def ask_number(prompt):
 
 class FarmTrackApp:
     def __init__(self):
-        self.enterprises = []        # Crop and Livestock objects, mixed together
-        self.items = []              # InventoryItem objects
-        if os.path.exists(DATA_FILE):
-            try:
-                with open(DATA_FILE, "rb") as file:
-                    self.enterprises, self.items = pickle.load(file)
-            except Exception:
-                raise ValueError(f"'{DATA_FILE}' is damaged. Fix or rename it.") from None
-
-    def save(self):
-        with open(DATA_FILE, "wb") as file:
-            pickle.dump((self.enterprises, self.items), file)
-
-    def load_sample_data(self):
-        """Premade records for demonstrations. Start dates are worked out from
-        today, so there are always real upcoming tasks to show."""
-        def ago(days):
-            return (date.today() - timedelta(days=days)).isoformat()
-
-        maize = Maize("Maize Plot A", 2, ago(60))
+        # ---- PREMADE DATA (baked in): these records are here every time the
+        # ---- program starts. Edit, add or delete lines to change the demo.
+        maize = Maize("Maize Plot A", 2, TODAY - timedelta(days=60))
         maize.add_expense(12000, "Certified seed")
         maize.add_expense(8500, "DAP fertiliser")
         maize.add_expense(3000, "Weeding labour")
 
-        tomatoes = Tomatoes("Tomato Greenhouse", 0.25, ago(40))
+        tomatoes = Tomatoes("Tomato Greenhouse", 0.25, TODAY - timedelta(days=40))
         tomatoes.add_expense(6000, "Seedlings")
         tomatoes.add_expense(2500, "Fungicide")
         tomatoes.record_output(180)
         tomatoes.add_sale(15000, "Sold at the market")
 
-        cows = DairyCow("Dairy Herd", 4, ago(200))
+        cows = DairyCow("Dairy Herd", 4, TODAY - timedelta(days=200))
         cows.add_expense(15000, "Napier grass and feed")
         cows.record_output(380)
         cows.add_sale(28000, "Milk to the cooperative")
 
-        hens = Poultry("Layer Flock", 50, ago(85))
+        hens = Poultry("Layer Flock", 50, TODAY - timedelta(days=85))
         hens.add_expense(9000, "Layers mash")
         hens.record_output(900)
         hens.add_sale(14400, "Egg tray sales")
 
-        self.enterprises = [maize, tomatoes, cows, hens]
+        self.enterprises = [maize, tomatoes, cows, hens]    # Crop and Livestock mixed
         self.items = [InventoryItem("DAP fertiliser (kg)", 40, 20),
-                      InventoryItem("Layers mash (kg)", 15, 25),      # below its warning level
+                      InventoryItem("Layers mash (kg)", 15, 25),     # below its warning level
                       InventoryItem("Fungicide (litres)", 3, 1)]
-        self.save()
-
-    def load_sample_data(self):
-        """Premade records for demonstrations. Start dates are worked out from
-        today, so there are always real upcoming tasks to show."""
-        def ago(days):
-            return (date.today() - timedelta(days=days)).isoformat()
-
-        maize = Maize("Maize Plot A", 2, ago(60))
-        maize.add_expense(12000, "Certified seed")
-        maize.add_expense(8500, "DAP fertiliser")
-        maize.add_expense(3000, "Weeding labour")
-
-        tomatoes = Tomatoes("Tomato Greenhouse", 0.25, ago(40))
-        tomatoes.add_expense(6000, "Seedlings")
-        tomatoes.add_expense(2500, "Fungicide")
-        tomatoes.record_output(180)
-        tomatoes.add_sale(15000, "Sold at the market")
-
-        cows = DairyCow("Dairy Herd", 4, ago(200))
-        cows.add_expense(15000, "Napier grass and feed")
-        cows.record_output(380)
-        cows.add_sale(28000, "Milk to the cooperative")
-
-        hens = Poultry("Layer Flock", 50, ago(85))
-        hens.add_expense(9000, "Layers mash")
-        hens.record_output(900)
-        hens.add_sale(14400, "Egg tray sales")
-
-        self.enterprises = [maize, tomatoes, cows, hens]
-        self.items = [InventoryItem("DAP fertiliser (kg)", 40, 20),
-                      InventoryItem("Layers mash (kg)", 15, 25),      # below its warning level
-                      InventoryItem("Fungicide (litres)", 3, 1)]
-        self.save()
 
     @staticmethod
     def find(things, name):
@@ -387,8 +336,6 @@ class FarmTrackApp:
             print("No tasks due.")
 
     def run(self):
-        if not self.enterprises:        # nothing recorded yet: start with the sample data
-            self.load_sample_data()
         actions = {"1": self.add_enterprise, "2": self.view_enterprises,
                    "3": self.record_expense, "4": self.record_sale,
                    "5": self.record_harvest, "6": self.add_item,
@@ -407,17 +354,13 @@ class FarmTrackApp:
                 continue
             try:
                 actions[choice]()
-                self.save()          # saved after every change
             except (ValueError, OverflowError) as error:
                 print("Error:", error)
-        self.save()
-        print("Saved. Goodbye!")
+        print("Goodbye!")
 
 
 if __name__ == "__main__":
     try:
         FarmTrackApp().run()
-    except ValueError as error:
-        print("Error:", error)
     except (EOFError, KeyboardInterrupt):
-        print("\nGoodbye! (your last change was already saved)")
+        print("\nGoodbye!")
